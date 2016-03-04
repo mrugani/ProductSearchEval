@@ -19,6 +19,7 @@ class Config:
         self.processed_test_data_path = "%s/test.processed.csv" % self.feature_folder
         self.preprocessed_train_data_path='../../Preprocessed_data/train_pre_lower.csv'
         self.preprocessed_train_join_data_path='../../Preprocessed_data/train_join.csv'
+        self.train_feature_extracted_path='../../Preprocessed_data/train_features.csv'
         
         ## nlp related        
         self.cooccurrence_word_exclude_stopword = cooccurrence_word_exclude_stopword
