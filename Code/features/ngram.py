@@ -11,6 +11,8 @@ def getBigram(words, join="_"):
 	for i in range(l-1):
 		result.append(words[i]+join+words[i+1])
 
+	return result
+
 def getTrigram(words, join="_"):
 	l=len(words)
 	result=[]
@@ -18,5 +20,7 @@ def getTrigram(words, join="_"):
 		return words
 	for i in range(l-2):
 		result.append(words[i]+join+words[i+1]+join+words[i+2])
+
+	return result
 
 
