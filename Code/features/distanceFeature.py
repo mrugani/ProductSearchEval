@@ -61,11 +61,12 @@ def extract_distance_features(df):
                     df["%s_of_%s_between_%s_%s"%(dist,gram,target_name,obs_name)] = \
                             list(df.apply(lambda x: compute_dist(x[target_name+"_"+gram], x[obs_name+"_"+gram], dist), axis=1))
 
-    df.drop(['query_unigram', 'title_unigram', 'description_unigram', 'query_bigram','title_bigram','description_bigram', 'query_trigram', 'title_trigram', 'description_trigram'], axis=1)                      
+    df=df.drop(['query_unigram', 'title_unigram', 'description_unigram', 'query_bigram','title_bigram','description_bigram', 'query_trigram', 'title_trigram', 'description_trigram'], axis=1)                      
+    return df
 
 df1 = pd.read_csv("../../data/train_pre.csv")
 df2 = pd.read_csv("../../data/product_description_pre.csv")
 df=pd.merge(left=df1, right=df2, how='left', left_on="pid", right_on="pid")
 #print df.columns
-extract_distance_features(df)
+df=extract_distance_features(df)
 df.to_csv("../../data/train_join.csv", header=True, index=False)
