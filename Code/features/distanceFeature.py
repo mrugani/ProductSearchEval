@@ -27,6 +27,7 @@ def compute_dist(A, B, dist="jaccard_coef"):
 
 
 def preprocess_data(line):
+    line=str(line)
     token_pattern = r"(?u)\b\w\w+\b"
     token_pattern = re.compile(token_pattern, flags = re.UNICODE | re.LOCALE)
     tokens = [x.lower() for x in token_pattern.findall(line)]
@@ -34,6 +35,7 @@ def preprocess_data(line):
 
 #df table of search results
 #df table of product descriptions
+
 def extract_distance_features(df):	
     join_str="_"
     df["query_unigram"] = list(df.apply(lambda x: preprocess_data(x["query"]), axis=1))
@@ -45,13 +47,15 @@ def extract_distance_features(df):
     df["query_trigram"] = list(df.apply(lambda x: ngram.getTrigram(x["query_unigram"], join_str), axis=1))
     df["title_trigram"] = list(df.apply(lambda x: ngram.getTrigram(x["title_unigram"], join_str), axis=1))
     df["description_trigram"] = list(df.apply(lambda x: ngram.getTrigram(x["description_unigram"], join_str), axis=1))
-
+    df["attribute_values_unigram"] = list(df.apply(lambda x: preprocess_data(x["attribute_values"]), axis=1))
+    df["attribute_values_bigram"] = list(df.apply(lambda x: preprocess_data(x["attribute_values_unigram"]), axis=1))
+    df["attribute_values_trigram"] = list(df.apply(lambda x: preprocess_data(x["attribute_values_unigram"]), axis=1))
     #calculate distance
 
     print "generate jaccard coef and dice dist for n-gram"
     dists = ["jaccard_coef", "dice_dist"]
     grams = ["unigram", "bigram", "trigram"]
-    feat_names = ["query", "title", "description"]
+    feat_names = ["query", "title", "description", "attribute_values"]
     for dist in dists:
         for gram in grams:
             for i in range(len(feat_names)-1):
@@ -61,12 +65,12 @@ def extract_distance_features(df):
                     df["%s_of_%s_between_%s_%s"%(dist,gram,target_name,obs_name)] = \
                             list(df.apply(lambda x: compute_dist(x[target_name+"_"+gram], x[obs_name+"_"+gram], dist), axis=1))
 
-    df=df.drop(['query_unigram', 'title_unigram', 'description_unigram', 'query_bigram','title_bigram','description_bigram', 'query_trigram', 'title_trigram', 'description_trigram'], axis=1)                      
+    df=df.drop(['query_unigram', 'title_unigram', 'description_unigram', 'query_bigram','title_bigram','description_bigram', 'query_trigram', 'title_trigram', 'description_trigram', 'attribute_values_unigram', 'attribute_values_bigram', 'attribute_values_trigram'], axis=1)                      
     return df
 
-df1 = pd.read_csv("../../data/train_pre.csv")
-df2 = pd.read_csv("../../data/product_description_pre.csv")
+df1 = pd.read_csv("../../data/train_features_tf_counting_dist.csv")
+df2 = pd.read_csv("../../data/attributes_join.csv")
 df=pd.merge(left=df1, right=df2, how='left', left_on="pid", right_on="pid")
 #print df.columns
 df=extract_distance_features(df)
-df.to_csv("../../data/train_join.csv", header=True, index=False)
+df.to_csv("../../data/train_all.csv", header=True, index=False)
