@@ -19,10 +19,7 @@ def jaccardCoef(A, B):
     #print A, B
     A, B = set(A), set(B)
     intersect = len(A.intersection(B))
-    if len(A)<len(B):
-    	union=len(A)
-    else:
-    	union=len(B)
+    union = len(A.union(B))
     coef=try_divide(intersect, union)
     return coef
 
@@ -66,7 +63,7 @@ def preprocess_data(line, cat=''):
 
 def extract_distance_features(df):	
     join_str="_"
-    df["query_unigram"] = list(df.apply(lambda x: preprocess_data(x["query_original"], "stem"), axis=1))
+    df["query_unigram"] = list(df.apply(lambda x: preprocess_data(x["query"], "stem"), axis=1))
     df["title_unigram"] = list(df.apply(lambda x: preprocess_data(x["title"]), axis=1))
     df["description_unigram"] = list(df.apply(lambda x: preprocess_data(x["description"]), axis=1))
     df["query_bigram"] = list(df.apply(lambda x: ngram.getBigram(x["query_unigram"], join_str), axis=1))
@@ -75,7 +72,7 @@ def extract_distance_features(df):
     df["query_trigram"] = list(df.apply(lambda x: ngram.getTrigram(x["query_unigram"], join_str), axis=1))
     df["title_trigram"] = list(df.apply(lambda x: ngram.getTrigram(x["title_unigram"], join_str), axis=1))
     df["description_trigram"] = list(df.apply(lambda x: ngram.getTrigram(x["description_unigram"], join_str), axis=1))
-    df["attribute_values_unigram"] = list(df.apply(lambda x: preprocess_data(x["attribute_values"], "stem"), axis=1))
+    df["attribute_values_unigram"] = list(df.apply(lambda x: preprocess_data(x["values"], "stem"), axis=1))
     df["attribute_values_bigram"] = list(df.apply(lambda x: ngram.getBigram(x["attribute_values_unigram"]), axis=1))
     df["attribute_values_trigram"] = list(df.apply(lambda x: ngram.getTrigram(x["attribute_values_unigram"]), axis=1))
     #calculate distance
@@ -85,6 +82,7 @@ def extract_distance_features(df):
     grams = ["unigram", "bigram", "trigram"]
     feat_names = ["query", "title", "description", "attribute_values"]
     for dist in dists:
+        print "Generating ",dist
         for gram in grams:
             for i in range(len(feat_names)-1):
                 for j in range(i+1,len(feat_names)):
@@ -93,8 +91,10 @@ def extract_distance_features(df):
                     df["%s_of_%s_between_%s_%s"%(dist,gram,target_name,obs_name)] = \
                             list(df.apply(lambda x: compute_dist(x[target_name+"_"+gram], x[obs_name+"_"+gram], dist), axis=1))
 
+    print "Dropping columns"
     df=df.drop(['query_unigram', 'title_unigram', 'description_unigram', 'query_bigram','title_bigram','description_bigram', 'query_trigram', 'title_trigram', 'description_trigram', 'attribute_values_unigram', 'attribute_values_bigram', 'attribute_values_trigram'], axis=1)                      
-    df.to_csv("../../data/trial/train_distFeat_updated_1.csv", header=True, index=False)
+    print "Creating csv"
+    df.to_csv("../../data/feat/test_distFeat.csv", header=True, index=False)
     return df
 
 # df1 = pd.read_csv("../../data/train_pre.csv")
@@ -109,5 +109,5 @@ def extract_distance_features(df):
 # df.to_csv("../../data/train_distFeat.csv", header=True, index=False)
 
 readSpellDict()
-df1 = pd.read_csv("../../data/joined/train_distfeatures_countFeat_inc_attributes.csv")
+df1 = pd.read_csv("../../data/modified/test_combine.csv")
 extract_distance_features(df1)

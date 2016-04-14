@@ -10,8 +10,12 @@ import ngram  as ng
 sys.path.append("../")
 from config import config
 from utils import try_divide
+from  nltk.stem.porter import PorterStemmer
+import nltk
 
 spell_check_dict=dict()
+
+ps=PorterStemmer()
 
 def readSpellDict():
 	fileName="spell_dict"
@@ -39,22 +43,33 @@ def get_csv_data(fileName):
 	return reader	
 
 
-def preprocess_data(line):
+stopwords = nltk.corpus.stopwords.words("english")
+stopwords = set(stopwords)
+
+
+def preprocess_data(line, stem=False):
     line=str(line)
-    if line in spell_dict:
-    	line=spell_dict[line]
+    if line in spell_check_dict:
+    	line=spell_check_dict[line]
     token_pattern = r"(?u)\b\w\w+\b"
     token_pattern = re.compile(token_pattern, flags = re.UNICODE | re.LOCALE)
     tokens = [x.lower() for x in token_pattern.findall(line)]
-    return tokens
+    if stem==True:
+    	tokens=[ps.stem(x) for x in tokens]
+    #try removing stopwords
+    result=list()
+    for x in tokens:
+    	if x not in stopwords:
+    		result.append(x)
+    return result
 
 
 def extract_feat(df):
 	join_str="_"
-	df["query_unigram"] = list(df.apply(lambda x: preprocess_data(x["query_original"]), axis=1))
+	df["query_unigram"] = list(df.apply(lambda x: preprocess_data(x["query"], stem=True), axis=1))
 	df["title_unigram"] = list(df.apply(lambda x: preprocess_data(x["title"]), axis=1))
 	df["description_unigram"] = list(df.apply(lambda x: preprocess_data(x["description"]), axis=1))
-	df["attribute_values_unigram"] = list(df.apply(lambda x: preprocess_data(x["attribute_values"]), axis=1))
+	df["attribute_values_unigram"] = list(df.apply(lambda x: preprocess_data(x["values"]), axis=1))
 	df["query_bigram"] = list(df.apply(lambda x: ngram.getBigram(x["query_unigram"], join_str), axis=1))
 	df["title_bigram"] = list(df.apply(lambda x: ngram.getBigram(x["title_unigram"], join_str), axis=1))
 	df["description_bigram"] = list(df.apply(lambda x: ngram.getBigram(x["description_unigram"], join_str), axis=1))
@@ -84,27 +99,29 @@ def extract_feat(df):
 
 	## description missing indicator
 	df["description_missing"] = list(df.apply(lambda x: int(x["description_unigram"] == ""), axis=1))
+	#print "dropping unigrams bigrams trigrams"
+	#df=df.drop(['query','description','title','values'], axis=1)                      	
 
 
-    ##############################
-    ## intersect word count ##
-    ##############################
+ #    ##############################
+ #    ## intersect word count ##
+ #    ##############################
 
-	print "generate intersect word counting features"
-	#### unigram
-	for gram in grams:
-		for obs_name in feat_names:
-			for target_name in feat_names:
-				if target_name != obs_name:
-                    ## query
-					df["count_of_%s_%s_in_%s"%(obs_name,gram,target_name)] = list(df.apply(lambda x: sum([1. for w in x[obs_name+"_"+gram] if w in set(x[target_name+"_"+gram])]), axis=1))
-					df["ratio_of_%s_%s_in_%s"%(obs_name,gram,target_name)] = map(try_divide, df["count_of_%s_%s_in_%s"%(obs_name,gram,target_name)], df["count_of_%s_%s"%(obs_name,gram)])
+	# print "generate intersect word counting features"
+	# #### unigram
+	# for gram in grams:
+	# 	for obs_name in feat_names:
+	# 		for target_name in feat_names:
+	# 			if target_name != obs_name:
+ #                    ## query
+	# 				df["count_of_%s_%s_in_%s"%(obs_name,gram,target_name)] = list(df.apply(lambda x: sum([1. for w in x[obs_name+"_"+gram] if w in set(x[target_name+"_"+gram])]), axis=1))
+	# 				df["ratio_of_%s_%s_in_%s"%(obs_name,gram,target_name)] = map(try_divide, df["count_of_%s_%s_in_%s"%(obs_name,gram,target_name)], df["count_of_%s_%s"%(obs_name,gram)])
 
-		## some other feat
-		df["title_%s_in_query_div_query_%s"%(gram,gram)] = map(try_divide, df["count_of_title_%s_in_query"%gram], df["count_of_query_%s"%gram])
-		df["title_%s_in_query_div_query_%s_in_title"%(gram,gram)] = map(try_divide, df["count_of_title_%s_in_query"%gram], df["count_of_query_%s_in_title"%gram])
-		df["description_%s_in_query_div_query_%s"%(gram,gram)] = map(try_divide, df["count_of_description_%s_in_query"%gram], df["count_of_query_%s"%gram])
-		df["description_%s_in_query_div_query_%s_in_description"%(gram,gram)] = map(try_divide, df["count_of_description_%s_in_query"%gram], df["count_of_query_%s_in_description"%gram])
+	# 	## some other feat
+	# 	df["title_%s_in_query_div_query_%s"%(gram,gram)] = map(try_divide, df["count_of_title_%s_in_query"%gram], df["count_of_query_%s"%gram])
+	# 	df["title_%s_in_query_div_query_%s_in_title"%(gram,gram)] = map(try_divide, df["count_of_title_%s_in_query"%gram], df["count_of_query_%s_in_title"%gram])
+	# 	df["description_%s_in_query_div_query_%s"%(gram,gram)] = map(try_divide, df["count_of_description_%s_in_query"%gram], df["count_of_query_%s"%gram])
+	# 	df["description_%s_in_query_div_query_%s_in_description"%(gram,gram)] = map(try_divide, df["count_of_description_%s_in_query"%gram], df["count_of_query_%s_in_description"%gram])
 
 
 
@@ -114,6 +131,8 @@ def extract_feat(df):
 	######################################
 
 
+	print "dropping unigrams bigrams trigrams"
+	df=df.drop(['query','description','title','values'], axis=1)                      	
 
 
 	print "generate intersect word position features"
@@ -136,15 +155,15 @@ def extract_feat(df):
 					df["normalized_pos_of_%s_%s_in_%s_std" % (obs_name, gram, target_name)] = map(try_divide, df["pos_of_%s_%s_in_%s_std" % (obs_name, gram, target_name)] , df["count_of_%s_%s" % (obs_name, gram)])
 
 
-	print "dropping unigrams bigrams trigrams"
-	df=df.drop(['query_unigram', 'title_unigram', 'description_unigram', 'query_bigram','title_bigram','description_bigram', 'query_trigram', 'title_trigram', 'description_trigram'], axis=1)                      	
+	#print "dropping unigrams bigrams trigrams"
+	df=df.drop(['query_unigram', 'title_unigram', 'description_unigram', 'query_bigram','title_bigram','description_bigram', 'query_trigram', 'title_trigram', 'description_trigram', 'attribute_values_unigram', 'attribute_values_bigram', 'attribute_values_trigram'], axis=1)                      	
 	print "creating csv"
-	df.to_csv("../../data/trial/train_distFeat_counting_updated.csv", header=True, index=False)
+	df.to_csv("../../data/feat/test_countingfeat_part3.csv", header=True, index=False)
 
 if __name__ == "__main__":
 
 	readSpellDict()
-	input_df=get_csv_data("../../data/trial/train_distFeat_updated.csv")
+	input_df=get_csv_data("../../data/modified/test_combine.csv")
 	input_df=input_df.replace(np.nan,0, regex=True)
 
 	#######################

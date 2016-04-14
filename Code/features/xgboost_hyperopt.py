@@ -8,19 +8,20 @@ from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import RandomForestRegressor
 from math import sqrt
 
-train=pd.read_csv("../../data/train_distFeat_updated_10.csv")
-train7=pd.read_csv("../../data/train_distFeat_updated_7.csv")
-train["lzma"]=train7["lzma"]
-train8=pd.read_csv("../../data/train_distFeat_updated_8.csv")
-train["last_word_in"]=train8["last_word_in"]
-train["edist"]=train8["edist"]
-train=train.replace(np.nan,0, regex=True)
+train=pd.read_csv("../../data/feat/train_distfeat_brandFeat_countFeat.csv")
+# train7=pd.read_csv("../../data/train_distFeat_updated_7.csv")
+# train["lzma"]=train7["lzma"]
+# train8=pd.read_csv("../../data/train_distFeat_updated_8.csv")
+# train["last_word_in"]=train8["last_word_in"]
+# train["edist"]=train8["edist"]
+#train=train.replace(np.nan,0, regex=True)
 y=train['relevance']
+train=train.drop('pid_y', axis=1)
 # train = train.drop('id', axis=1)
-df1=pd.read_csv('../../data/train_brand_dist_counting_cosine_values.csv')
-train['cosine_sim_query_title']=df1['cosine_sim_query_title']
-train['cosine_sim_query_description']=df1['cosine_sim_query_description']
-train['cosine_sim_title_description']=df1['cosine_sim_title_description']
+# df1=pd.read_csv('../../data/train_brand_dist_counting_cosine_values.csv')
+# train['cosine_sim_query_title']=df1['cosine_sim_query_title']
+# train['cosine_sim_query_description']=df1['cosine_sim_query_description']
+# train['cosine_sim_title_description']=df1['cosine_sim_title_description']
 #train['cos']=train['cosine_sim_query_title']+train['cosine_sim_query_description']-2*train['cosine_sim_title_description']
 train=train.drop([  
     'dice_dist_of_trigram_between_query_title',

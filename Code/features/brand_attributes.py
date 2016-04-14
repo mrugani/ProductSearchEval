@@ -13,7 +13,7 @@ def count(A, B):
     #print A, B
     A, B = set(A), set(B)
     intersect = len(A.intersection(B))
-    return intersect
+    return try_divide(intersect, len(B))
 ps = PorterStemmer()
 
 spell_check_dict=dict()
@@ -104,13 +104,12 @@ def last_word(query, title):
 	return 0
 
 def extract_brand_features(df):
-	print "computing edist"
 	#df["edist"]=list(df.apply(lambda x : edist(x["query_original"], x["title"]), axis=1))
 	# df["lzma"] = list(df.apply(lambda x: compression_distance(x["query_original"],x["title"]), axis=1))
 	df["brand_pre"] = list(df.apply(lambda x: preprocess_data(x["brand"]), axis=1))
 	df["count_of_brand"] = list(df.apply(lambda x: len(x["brand_pre"]), axis=1))
-	df["attr_unigram"] = list(df.apply(lambda x: preprocess_data(x["attribute_values"]), axis=1))
-	df["query_unigram"] = list(df.apply(lambda x: preprocess_data(x["query_original"]), axis=1))
+	df["attr_unigram"] = list(df.apply(lambda x: preprocess_data(x["values"]), axis=1))
+	df["query_unigram"] = list(df.apply(lambda x: preprocess_data(x["query"]), axis=1))
 	df["query_in_brand"] = list(df.apply(lambda x: count(x["brand_pre"], x["query_unigram"]), axis=1))
 	df["title_unigram"] = list(df.apply(lambda x: preprocess_data(x["title"]), axis=1))
 	df["desc_unigram"] = list(df.apply(lambda x: preprocess_data(x["description"]), axis=1))
@@ -118,24 +117,23 @@ def extract_brand_features(df):
 	#df["last_word_in"] = list(df.apply(lambda x: last_word(x["query_unigram"], x["title_unigram"]), axis=1))
 	df["query_in_desc"] = list(df.apply(lambda x: count(x["desc_unigram"], x["query_unigram"]), axis=1))
 	df["query_in_attr"] = list(df.apply(lambda x: count(x["attr_unigram"], x["query_unigram"]), axis=1))
-	df["query_count"] = list(df.apply(lambda x: len(x["query_unigram"]), axis=1))
-	df["ratio_title"] = map(try_divide, df["query_in_title"], df["query_count"])
-	df["ratio_desc"] = map(try_divide, df["query_in_desc"], df["query_count"])
+	#df["query_count"] = list(df.apply(lambda x: len(x["query_unigram"]), axis=1))
+	#df["ratio_title"] = map(try_divide, df["query_in_title"], df["query_count"])
+	#df["ratio_desc"] = map(try_divide, df["query_in_desc"], df["query_count"])
 	#df["query_count_unique"] = list(df.apply(lambda x: len(set(x["query_unigram"])), axis=1))
-	df["query_len"] = list(df.apply(lambda x: len(x["query_original"]), axis=1))
+	print "Computing len for query and title"
+	df["query_len"] = list(df.apply(lambda x: len(x["query"]), axis=1))
 	df["title_len"] = list(df.apply(lambda x: len(x["title"]), axis=1))
 	#df["edist_norm"] = list(df.apply(lambda x : edist_norm(x["query_unigram"], x["title_unigram"]), axis=1))
-	for c in ascii_lowercase:
-		df["query_title_"+c]=list(df.apply(lambda x: letterFreq(x["query_unigram"], x["title_unigram"], c), axis=1))
-
-	df=df.drop(['desc_unigram','attr_unigram','title_unigram','query_unigram', 'title', 'query','query_original', 'description','attribute_names','attribute_values', 'brand_pre'], axis=1) 
-
-	df.to_csv("../../data/train_distFeat_updated_10.csv", header=True, index=False)
+	# for c in ascii_lowercase:
+	# 	df["query_title_"+c]=list(df.apply(lambda x: letterFreq(x["query_unigram"], x["title_unigram"], c), axis=1))
+	print "Dropping columns"
+	df=df.drop(['description','query','brand','values','desc_unigram','attr_unigram','title_unigram','query_unigram', 'brand_pre'], axis=1) 
+	print "Creating csv"
+	df.to_csv("../../data/feat/test_brandFeat.csv", header=True, index=False)
 
 readSpellDict()
-print spell_check_dict
-df1 = pd.read_csv("../../data/trial/train_distFeat_updated_1.csv")
-#df1 = pd.read_csv("../../data/trial/train_distFeat_counting_updated.csv")
-df2 = pd.read_csv("../../data/brands.csv")
-df=df1.join(df2, on='pid', how='left', rsuffix="pid2")
-extract_brand_features(df)
+df_train = pd.read_csv("../../data/modified/test_combine.csv")
+df_brand=pd.read_csv("../../data/modified/brands.csv")
+df_join = df_train.merge(df_brand, on='pid', how='left')
+extract_brand_features(df_join)
